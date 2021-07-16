@@ -11,6 +11,25 @@ local function printProp (p)
 	return ''
 end
 
+
+local function toString (p)
+	if p.tag == 'empty' then
+		return ''
+	elseif p.tag == 'char' then
+		return p.p1
+	elseif p.tag == 'con' then
+		local s = ''
+		for i, v in ipairs(p.p1) do
+			s = s .. toString(v)
+		end
+		return s
+	else
+		print("tou aqui", p, p.tag)
+		error("Unknown tag: " .. tostring(p.tag))
+	end
+end
+
+
 local function printp (p)
 	if p.tag == 'empty' then
 		return "''"
@@ -24,13 +43,13 @@ local function printp (p)
 		return p.p1
 	elseif p.tag == 'ord' then
 		local l = {}
-		for k, v in pairs(p.p1) do
+		for k, v in ipairs(p.p1) do
 			l[#l + 1] = printp(v)	
 		end
 		return table.concat(l, ' / ')
 	elseif p.tag == 'con' then
 		local l = {}
-		for k, v in pairs(p.p1) do
+		for k, v in ipairs(p.p1) do
 			l[#l + 1] = printp(v)	
 		end
 		return table.concat(l, ' ')
@@ -125,5 +144,6 @@ return {
 	printp = printp,
 	printg = printg,
 	prefix = prefix,
-	printToFile = printToFile
+	printToFile = printToFile,
+	toString = toString
 }

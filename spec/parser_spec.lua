@@ -123,4 +123,39 @@ describe("Grammar parser", function()
 		end)
 	end)
 	
+	describe("Testing hasSymbol", function()	
+		local g = [[s <- 'a' b / b c
+		            b <- c / D
+		            c <- 'c'
+		            D <- 'd']]
+		g = m.match(g)
+		
+		local hasSymbol = m.hasSymbol
+		local rhsS = g.prules['s']
+		assert.False(hasSymbol(rhsS, 's'))
+		assert.False(hasSymbol(rhsS, 'D'))
+		assert.False(hasSymbol(rhsS, 'a'))
+		assert.True(hasSymbol(rhsS, 'a', true))
+		assert.True(hasSymbol(rhsS, 'b'))
+		assert.True(hasSymbol(rhsS, 'c'))
+		
+		local rhsB = g.prules['b']
+		assert.False(hasSymbol(rhsB, 's'))
+		assert.True(hasSymbol(rhsB, 'D'))
+		assert.False(hasSymbol(rhsB, 'a'))
+		assert.False(hasSymbol(rhsB, 'b'))
+		assert.True(hasSymbol(rhsB, 'c'))
+		
+		local rhsC = g.prules['c']
+		assert.False(hasSymbol(rhsC, 'b'))
+		assert.False(hasSymbol(rhsC, 'b', true))
+		assert.False(hasSymbol(rhsC, 'c'))
+		assert.True(hasSymbol(rhsC, 'c', true))
+		
+		local rhsD = g.prules['D']
+		assert.False(hasSymbol(rhsD, 'd'))
+		assert.True(hasSymbol(rhsD, 'd', true))
+	end)
+	
+	
 end)

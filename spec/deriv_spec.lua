@@ -6,7 +6,6 @@ local say = require'say'
 
 local newNode = parser.newNode
 
-
 local function equalDeriv (d, s)
 	local dStr = d.list:toString('', '', ' ', pretty.printp)
 	local sStr = s
@@ -147,6 +146,5 @@ describe("Testing #deriv", function()
 		local s4 = "D 'c'"
 		assert.is_one_of(d, s1, s2, s3, s4)
 	end)
-	
 	
 end)

@@ -182,18 +182,40 @@ defs.isSimpleExp = function (p)
 end
 
 
+defs.hasSymbol = function (p, symbol, alsoChar)
+	if p.tag == 'var' or (p.tag == 'char' and alsoChar) then
+		return p.p1 == symbol, p
+	elseif p.tag == 'con' or p.tag == 'ord' then
+		for k, v in pairs(p.p1) do
+			if defs.hasSymbol(v, symbol, alsoChar) then
+				if p.tag == 'con' then
+					return true, p
+				else
+					return true, v
+				end
+			end
+		end
+		return false
+	elseif p.tag == 'star' or p.tag == 'opt' or p.tag == 'plus' then
+		return defs.hasSymbol(p.p1, v, alsoChar), p
+	else
+		return false
+	end
+end
+
+
 defs.isDerivable = function (p)
 	if p.tag == 'var' and not defs.isLexRule(p.p1) then
 		return true
 	elseif p.tag == 'con' or p.tag == 'ord' then
-		for k, v in pairs(p.p1) do
-			if isDerivable(v) then
+		for i, v in ipairs(p.p1) do
+			if defs.isDerivable(v) then
 				return true
 			end
 		end
 		return false
 	elseif p.tag == 'star' or p.tag == 'opt' or p.tag == 'plus' then
-		return isDerivable(p.p1)
+		return defs.isDerivable(p.p1)
 	else
 		return false
 	end

@@ -14,7 +14,7 @@ function Deriv.new(grammar)
 	math.randomseed(os.time())
 	return setmetatable({
 		grammar = grammar,
-		list = list.new(varInit)
+		list = list.new(varInit),
 	}, Deriv)
 end
 
@@ -71,6 +71,7 @@ function Deriv:step(n)
 		end
 	end
 end
+
 
 function Deriv:toString()
 	return self.list:toString()	
