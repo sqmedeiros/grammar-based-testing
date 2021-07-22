@@ -6,6 +6,14 @@ local say = require'say'
 local newNode = parser.newNode
 local newSeq = parser.newSeq
 
+local function newChar (ch)
+	return newNode('char', ch)
+end
+
+local function newVar (var)
+	return newNode('var', var)
+end
+
 local function getSubtable (tab, field)
 	local newTab = {}
 	for k, v in pairs(tab) do
@@ -110,8 +118,39 @@ describe("Testing #minderiv", function()
 		assert.same(words.D, "d")
 		assert.same(words.E, "x")
 	end)
+
 	
-	test("Calculate a minimum derivation where non-terminal A is rewritten in a specific way", function()
+	test("Calculate minimum derivation 4", function()
+		local g = [[s <- 'a' b / b c
+		            b <- c F / 'x' b / D
+		            c <- 'c' / E / D
+		            D <- 'd' / 'd' b I
+		            E <- 'e'
+		            F <- 'f' G
+		            G <- 'g'
+		            H <- 'h'
+		            I <- 'i' 'j']]
+		g = parser.match(g)
+		
+		local d = minderiv.new(g)
+		local minD = d:calcMinDeriv()
+		
+		assert.same(getSubtable(minD, "n"), { I = 1, H = 1, G = 1, F = 2, E = 1, D = 1, c = 1, b = 2, s = 3 })
+		local words = getSubtable(minD, "w") 
+		
+		assert.same(words.s, "a d")
+		assert.same(words.b, "d")
+		assert.same(words.c, "c")
+		assert.same(words.D, "d")
+		assert.same(words.E, "e")
+		assert.same(words.F, "f g")
+		assert.same(words.G, "g")
+		assert.same(words.H, "h")
+		assert.same(words.I, "i j")
+	end)
+	
+	
+	test("Calculate a minimum derivation where non-terminal A is rewritten in a specific way 1", function()
 		local g = [[s <- 'a' b / b c / 'e'
 		            b <- c b / D / E
 		            c <- 'c' b
@@ -123,24 +162,24 @@ describe("Testing #minderiv", function()
 		local minD = d:calcMinDeriv()
 		
 		-- s should be rewritten in a way that non-terminal b appears
-		local pairCov = { s = parser.newNode('var', 'b') }
-		local entry = d:getMinDeriv(parser.newNode('var', 's'), pairCov)
+		local pairCov = { s = newVar('b') }
+		local entry = d:getMinDeriv(newVar('s'), pairCov)
 		assert.True(entry.w == "d")
 		
 		-- first choice of rule s
 		pairCov['s'] = g.prules['s'].p1[1]
-		entry = d:getMinDeriv(parser.newNode('var', 's'), pairCov)
+		entry = d:getMinDeriv(newVar('s'), pairCov)
 		assert.True(entry.w == "a d")
 
 		--second choice of rule s
 		pairCov['s'] = g.prules['s'].p1[2]
-		entry = d:getMinDeriv(parser.newNode('var', 's'), pairCov)
+		entry = d:getMinDeriv(newVar('s'), pairCov)
 		assert.True(entry.w == "d c d")
 		
 		-- D -> E
 		pairCov['D'] = g.prules['E']
 		-- exp = c D
-		local exp = parser.newSeq(newNode('var', 'c'), newNode('var', 'D'))
+		local exp = parser.newSeq(newVar('c'), newVar('D'))
 		entry = d:getMinDeriv(exp, pairCov)
 		assert.True(entry.w == "c d x")
 	end)
@@ -170,14 +209,14 @@ describe("Testing #minderiv", function()
 		assert.same(getSubtable(graph['D'], 'w'), { })
 
 		-- graph[A][B].exp = expression we get after a mininum derivation from A to B
-		assert.same(getSubtable(graph['s'], 'exp'), { b = newSeq(newNode('char', 'a'), newNode('var', 'b')),
-		                                              c = newSeq(newNode('var', 'b'), newNode('var', 'c'))})
-		assert.same(getSubtable(graph['b'], 'exp'), { c = newNode('var', 'c'), D = newNode('var', 'D')})
+		assert.same(getSubtable(graph['s'], 'exp'), { b = newSeq(newChar('a'), newVar('b')),
+		                                              c = newSeq(newVar('b'), newVar('c'))})
+		assert.same(getSubtable(graph['b'], 'exp'), { c = newVar('c'), D = newVar('D')})
 		assert.same(getSubtable(graph['c'], 'exp'), { })
 		assert.same(getSubtable(graph['D'], 'exp'), { })
 	end)
 	
-	
+		
 	test("Build graph: recursive rule", function()
 		local g = [[s <- 'c' s / 'a' / b
 		            b <- 'x' / 'y']]
@@ -196,13 +235,13 @@ describe("Testing #minderiv", function()
 		assert.same(getSubtable(graph['b'], 'w'), { })
 
 		-- graph[A][B].exp = expression we get after a mininum derivation from A to B
-		assert.same(getSubtable(graph['s'], 'exp'), { s = newSeq(newNode('char', 'c'), newNode('var', 's')),
-		                                              b = newNode('var', 'b')})
+		assert.same(getSubtable(graph['s'], 'exp'), { s = newSeq(newChar('c'), newVar('s')),
+		                                              b = newVar('b')})
 		assert.same(getSubtable(graph['b'], 'exp'), { })
 	end)
 
 
-	test("Graph min path", function()
+	test("Graph min path #1", function()
 		local g = [[s <- 'a' b / b c
 		            b <- c / D
 		            c <- 'c'
@@ -211,11 +250,118 @@ describe("Testing #minderiv", function()
 		
 		local d = minderiv.new(g)
 		d:calcMinDeriv()
-		local graph = d:buildGraph()
-		d:minDerivPath()
+		d:buildGraph()
+		local graph = d:minDerivPath()
+		
+		-- graph[A][B].n = length of the mininum derivation from A to B
+		assert.same(getSubtable(graph['s'], 'n'), { b = 1, c = 1, D = 2})
+		assert.same(getSubtable(graph['b'], 'n'), { c = 1, D = 1})
+		assert.same(getSubtable(graph['c'], 'n'), { })
+		assert.same(getSubtable(graph['D'], 'n'), { })
+
+		-- graph[A][B].w = sentential form we get after a mininum derivation from A to B
+		assert.same(getSubtable(graph['s'], 'w'), { b = 'a c', c = 'c c', D = 'a d'})
+		assert.same(getSubtable(graph['b'], 'w'), { c = 'c', D = 'd'})
+		assert.same(getSubtable(graph['c'], 'w'), { })
+		assert.same(getSubtable(graph['D'], 'w'), { })
+
+		-- graph[A][B].exp = expression we get after a mininum derivation from A to B
+		assert.same(getSubtable(graph['s'], 'exp'), { b = newSeq(newChar('a'), newVar('b')),
+		                                              c = newSeq(newVar('b'), newVar('c')),
+		                                              D = newSeq(newChar('a'), newVar('D'))})
+		assert.same(getSubtable(graph['b'], 'exp'), { c = newVar('c'), D = newVar('D')})
+		assert.same(getSubtable(graph['c'], 'exp'), { })
+		assert.same(getSubtable(graph['D'], 'exp'), { })
 	end)
 
-	--[==[			
+	test("Graph min path #2", function()
+		local g = [[s <- 'a' b / b c
+		            b <- c F / 'x' b / D
+		            c <- 'c' / E / D
+		            D <- 'd' / 'd' b I
+		            E <- 'e'
+		            F <- 'f' G
+		            G <- 'g'
+		            H <- 'h'
+		            I <- 'i']]
+		g = parser.match(g)
+		
+		local d = minderiv.new(g)
+		d:calcMinDeriv() 
+		d:buildGraph() 
+		local graph = d:minDerivPath()
+		
+		-- graph[A][B].n = length of the mininum derivation from A to B
+		assert.same(getSubtable(graph['s'], 'n'), { b = 1, c = 1, D = 2, E = 2, F = 2, G = 3, I = 3 })
+		assert.same(getSubtable(graph['b'], 'n'), { b = 1, c = 1, D = 1, E = 2, F = 1, G = 2, I = 2})
+		assert.same(getSubtable(graph['c'], 'n'), { b = 2, c = 3, D = 1, E = 1, F = 3, G = 4, I = 2})
+		assert.same(getSubtable(graph['D'], 'n'), { b = 1, c = 2, D = 2, E = 3, F = 2, G = 3, I = 1})
+		assert.same(getSubtable(graph['E'], 'n'), { })
+		assert.same(getSubtable(graph['F'], 'n'), { G = 1})
+		assert.same(getSubtable(graph['H'], 'n'), {  })
+		assert.same(getSubtable(graph['I'], 'n'), {  })
+
+		-- graph[A][B].w = sentential form we get after a mininum derivation from A to B
+		assert.same(getSubtable(graph['s'], 'w'), { b = 'a d', c = 'd c', D = 'a d', E = 'd e', F = 'a c f g', G = 'a c f g', I = 'a d d i'})
+		assert.same(getSubtable(graph['b'], 'w'), { b = 'x d', c = 'c f g', D = 'd', E = 'e f g', F = 'c f g', G = 'c f g', I = 'd d i'})
+		assert.same(getSubtable(graph['c'], 'w'), { b = 'd d i', c = 'd c f g i', D = 'd', E = 'e', F = 'd c f g i', G = 'd c f g i', I = 'd d i'})
+		assert.same(getSubtable(graph['D'], 'w'), { b = 'd d i', c = 'd c f g i', D = 'd d i', E = 'd e f g i', F = 'd c f g i', G = 'd c f g i', I = 'd d i'})
+		assert.same(getSubtable(graph['E'], 'w'), {  })
+		assert.same(getSubtable(graph['F'], 'w'), { G = 'f g'})
+		assert.same(getSubtable(graph['H'], 'w'), {  })
+		assert.same(getSubtable(graph['I'], 'w'), {  })
+
+
+		-- graph[A][B].exp = expression we get after a mininum derivation from A to B
+		assert.same(getSubtable(graph['s'], 'exp'), {
+			b = newSeq(newChar'a', newVar'b'),
+			c = newSeq(newVar'b', newVar'c'),
+			D = newSeq(newChar'a', newVar'D'),
+			E = newSeq(newVar'b', newVar'E'),
+			F = newSeq(newChar'a', newVar'c', newVar'F'),
+			G = newSeq(newChar'a', newVar'c', newChar'f', newVar'G'),
+			I = newSeq(newChar'a', newChar'd', newVar'b', newVar'I')
+		})		
+
+		assert.same(getSubtable(graph['b'], 'exp'), {
+			b = newSeq(newChar'x', newVar'b'),
+			c = newSeq(newVar'c', newVar'F'),
+			D = newVar'D',
+			E = newSeq(newVar'E', newVar'F'),
+			F = newSeq(newVar'c', newVar'F'),
+			G = newSeq(newVar'c', newChar'f', newVar'G'),
+			I = newSeq(newChar'd', newVar'b', newVar'I')
+		})
+		
+		assert.same(getSubtable(graph['c'], 'exp'), {
+			b = newSeq(newChar'd', newVar'b', newVar'I'),
+			c = newSeq(newChar'd', newVar'c', newVar'F', newVar'I'),
+			D = newVar'D',
+			E = newVar'E',
+			F = newSeq(newChar'd', newVar'c', newVar'F', newVar'I'),
+			G = newSeq(newChar'd', newVar'c', newChar'f', newVar'G', newVar'I'),
+			I = newSeq(newChar'd', newVar'b', newVar'I')
+		})
+		
+		assert.same(getSubtable(graph['D'], 'exp'), {
+			b = newSeq(newChar'd', newVar'b', newVar'I'),
+			c = newSeq(newChar'd', newVar'c', newVar'F', newVar'I'),
+			D = newSeq(newChar'd', newVar'D', newVar'I'),
+			E = newSeq(newChar'd', newVar'E', newVar'F', newVar'I'),
+			F = newSeq(newChar'd', newVar'c', newVar'F', newVar'I'),
+			G = newSeq(newChar'd', newVar'c', newChar'f', newVar'G', newVar'I'),
+			I = newSeq(newChar'd', newVar'b', newVar'I')
+		})
+		
+		assert.same(getSubtable(graph['E'], 'exp'), { })
+		assert.same(getSubtable(graph['F'], 'exp'), {
+			G = newSeq(newChar'f', newVar'G')
+		})
+		assert.same(getSubtable(graph['H'], 'exp'), { })
+		assert.same(getSubtable(graph['I'], 'exp'), { })		
+	end)
+
+			
 	test("Minimal derivation", function()
 		local g = [[s <- 'a' b / b c
 		            b <- c / D
@@ -243,10 +389,26 @@ describe("Testing #minderiv", function()
 		            c <- 'c'
 		            D <- 'd']]
 		g = parser.match(g)
-		
 		local d = minderiv.new(g)
+		d:calcMinDeriv()
 		d:buildGraph()
-		d:pairCoverage()
+		d:minDerivPath()
+		local pairCov = d:pairCoverage()
+		
+		assert.same(pairCov['s'], {
+			b = 'a c',
+			c = 'c c',
+			D = 'a d',
+		})
+		
+		assert.same(pairCov['b'], {
+			c = 'a c',
+			D = 'a d',
+		})
+		
+		assert.same(pairCov['c'], {})
+		assert.same(pairCov['D'], {})
+		
 	end)
-		--]==]
+		
 end)

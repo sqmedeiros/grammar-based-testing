@@ -31,11 +31,11 @@ function Deriv:isSententialForm ()
 end
 
 
-function Deriv:replaceNonTerm (rhs)	
+function Deriv:replaceNonTerm (rhs)
 	if rhs.tag == 'ord' then
 		local n = #rhs.p1
 		local exp = rhs.p1[math.random(n)]
-		return self:replaceNonTerm(exp)			
+		return self:replaceNonTerm(exp)
 	elseif rhs.tag == 'con' then
 		return table.unpack(rhs.p1)
 	elseif rhs.tag == 'var' or rhs.tag == 'char' then
