@@ -59,8 +59,8 @@ function MinDeriv:getMinDeriv (p, pairCov)
 		return { n = 0, w = pretty.toString(p) }
 	elseif p.tag == 'var' then
 		if pairCov and pairCov[p.p1] then
-			--return minDeriv[pairCov[p.p1]]
-			return self:getMinDeriv(pairCov[p.p1], pairCov)
+			-- pass an empty pairCov after doing the substitution
+			return self:getMinDeriv(pairCov[p.p1], {})
 		else
 		  --assert(minDeriv and minDeriv[p.p1], "Grammar does not have var " .. p.p1)
 			return minDeriv[p.p1] or {}
@@ -223,7 +223,7 @@ function MinDeriv:pairCoverage ()
 				--print("derivPairCoverage (" .. v1 .. "," .. v2 .. "): " .. pretty.printp(exp))
 				-- tem que ser
 				--local newW = self:getMinDeriv(exp, { [v1] = grap[v1][v2].exp }).w
-				local newW = self:getMinDeriv(exp, { [v1] = newNode('var', v2) }).w
+				local newW = self:getMinDeriv(exp, { [v1] = graph[v1][v2].exp }).w
 				--print("derivPairCoverage w", newW)
 				coverage[v1][v2] = newW
 			end
