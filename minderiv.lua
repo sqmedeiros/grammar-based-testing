@@ -215,15 +215,19 @@ function MinDeriv:pairCoverage ()
 		for _, v2 in ipairs(grammar.plist) do
 			if graph[v1][v2] then
 				local exp
+				local pairCov = { [v1] = graph[v1][v2].exp }
 				if vInit == v1 then
 					exp = graph['s'][v2].exp
+					-- checks whether v2 was already generated
+					local has, _ = parser.hasSymbol(exp, v2)
+					if has then -- do not need to generate v2 again
+						pairCov = {}
+					end
 				else
 				 	exp = graph['s'][v1].exp
 				end
 				--print("derivPairCoverage (" .. v1 .. "," .. v2 .. "): " .. pretty.printp(exp))
-				-- tem que ser
-				--local newW = self:getMinDeriv(exp, { [v1] = grap[v1][v2].exp }).w
-				local newW = self:getMinDeriv(exp, { [v1] = graph[v1][v2].exp }).w
+				local newW = self:getMinDeriv(exp, pairCov).w
 				--print("derivPairCoverage w", newW)
 				coverage[v1][v2] = newW
 			end

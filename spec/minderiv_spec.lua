@@ -83,7 +83,7 @@ describe("Testing #minderiv", function()
 		            c <- 'c'
 		            D <- 'd']]
 		g = parser.match(g)
-		
+
 		local d = minderiv.new(g)
 		local minD = d:calcMinDeriv()
 		
@@ -379,8 +379,28 @@ describe("Testing #minderiv", function()
 		assert.True(minDeriv["b"].w == "c" or minDeriv["b"].w == "d")
 		assert.True(minDeriv["c"].w == "c")
 		assert.True(minDeriv["D"].w == "d")
-		
 	end)
+
+
+	test("Minimal derivation 2", function()
+		local g = [[s <- 'a' s / b c
+		            b <- c b / D
+		            c <- 'c' / 'C'
+		            D <- 'd' / 'k' b 'J']]
+		g = parser.match(g)
+		
+		local d = minderiv.new(g)
+		local minDeriv = d:calcMinDeriv()
+
+		assert.same({s = 4, b = 2, c = 1, D = 1}, getSubtable(minDeriv, 'n'))
+
+		local minS = minDeriv["s"].w
+		assert.True(minS == "d c")
+		assert.True(minDeriv["b"].w == "d")
+		assert.True(minDeriv["c"].w == "c")
+		assert.True(minDeriv["D"].w == "d")
+	end)
+
 
 
 	test("Derivable pair coverage 1", function()
@@ -394,24 +414,83 @@ describe("Testing #minderiv", function()
 		d:buildGraph()
 		d:minDerivPath()
 		local pairCov = d:pairCoverage()
-		
+
 		assert.same(pairCov['s'], {
 			b = 'a c',
 			c = 'c c',
 			D = 'a d',
 		})
-		
+
 		assert.same(pairCov['b'], {
 			c = 'a c',
 			D = 'a d',
 		})
-		
+
 		assert.same(pairCov['c'], {})
 		assert.same(pairCov['D'], {})
+	end)
+
+
+	test("Derivable pair coverage initail rule recursive", function()
+		local g = [[s <- 'a' s D / 'b' E
+		            D <- 'd'
+		            E <- 'e']]
+
+		g = parser.match(g)
+		local d = minderiv.new(g)
+		d:calcMinDeriv()
+		d:buildGraph()
+		d:minDerivPath()
+		local pairCov = d:pairCoverage()
+
+		assert.same(pairCov['s'], {
+		  s = 'a b e d',
+			D = 'a b e d',
+			E = 'b e',
+		})
+
+		assert.same(pairCov['D'], {})
+		assert.same(pairCov['E'], {})
+	end)
+
+
+	test("Derivable pair coverage 2", function()
+		local g = [[s <- 'a' s / b c
+		            b <- c b / D
+		            c <- 'c' / 'C'
+		            D <- 'd' / 'k' b 'J']]
+
+		g = parser.match(g)
+		local d = minderiv.new(g)
+		d:calcMinDeriv()
+		d:buildGraph()
+		d:minDerivPath()
+		local pairCov = d:pairCoverage()
+
+		assert.same(pairCov['s'], {
+		  s = 'a d c',
+			b = 'd c',
+			c = 'd c',
+			D = 'd c',
+		})
+
+		assert.same(pairCov['b'], {
+		  b = 'c d c',
+			c = 'c d c',
+			D = 'd c',
+		})
+
+		assert.same(pairCov['c'], {} )
+
+		assert.same(pairCov['D'], {
+		  b = 'k d J c',
+			c = 'k c d J c',
+			D = 'k d J c',
+		})
 		
 	end)
 	
-	test("Derivable pair coverage #coverage2", function()
+	test("Derivable pair coverage #coverage3", function()
 		local g = [[s <- 'a' b / b c
 		            b <- c F / 'x' b / D
 		            c <- 'c' / E / D
@@ -476,7 +555,6 @@ describe("Testing #minderiv", function()
 	assert.same(pairCov['G'], {})
 	assert.same(pairCov['H'], {})
 	assert.same(pairCov['I'], {})
-		
 	end)	
 		
 end)
