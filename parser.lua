@@ -144,6 +144,11 @@ defs.newSuffix = function (p, ...)
 end 
 
 
+defs.isRepetition = function (p)
+	return p.tag == 'star' or p.tag == 'plus' or p.tag == 'opt'
+end
+
+
 defs.isLexRule = function (s)
 	local ch = string.sub(s, 1, 1)
 	return ch >= 'A' and ch <= 'Z'
