@@ -24,7 +24,6 @@ local function toString (p)
 		end
 		return s
 	else
-		print("tou aqui", p, p.tag)
 		error("Unknown tag: " .. tostring(p.tag))
 	end
 end
@@ -61,7 +60,7 @@ end
 
 local function printg (g, flagthrow, k, notLex)
 	property = k
-	print("Property ", k)
+	--print("Property ", k)
 	local t = {}
 	for i, v in ipairs(g.plist) do
 		if not parser.isLexRule(v) or not notLex then

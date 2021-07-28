@@ -263,4 +263,21 @@ function MinDeriv:buildGraph ()
 end
 
 
+function MinDeriv:generate ()
+	local graph = self.graph
+	local grammar = self.grammar
+	local coverage = self.coverage
+	local vInit = grammar.init
+
+	local newNode = parser.newNode
+	for _, v1 in ipairs(grammar.plist) do
+		for _, v2 in ipairs(grammar.plist) do
+			if graph[v1][v2] then
+				print(v1 .. " -> " .. v2 .. ': ' .. coverage[v1][v2])
+			end
+		end
+	end
+end
+
+
 return MinDeriv

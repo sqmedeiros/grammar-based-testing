@@ -555,6 +555,27 @@ describe("Testing #minderiv", function()
 	assert.same(pairCov['G'], {})
 	assert.same(pairCov['H'], {})
 	assert.same(pairCov['I'], {})
+
+	d:generate()
+
 	end)	
+
+--[==[
+	test("Derivable pair: #ampl grammar", function()
+		local g = [[
+prog <- 'program' id ':'
+
+factor <- ID
+ID     <- 'a'
+NUM    <- '0'
+STRING <- '"x"'
+]]
+		g = parser.match(g)
+		local d = minderiv.new(g)
+		d:calcMinDeriv()
+		d:buildGraph()
+		d:minDerivPath()
+		local pairCov = d:pairCoverage()
+]==]
 		
 end)
