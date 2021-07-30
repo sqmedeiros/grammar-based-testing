@@ -55,7 +55,7 @@ function MinDeriv:getMinDeriv (p, pairCov)
 	local minDeriv = self.minDeriv
 	assert(minDeriv)
 	
-	if p.tag == 'char' then
+	if p.tag == 'char' or p.tag == 'empty' then
 		return { n = 0, w = pretty.toString(p) }
 	elseif p.tag == 'var' then
 		if pairCov and pairCov[p.p1] then
@@ -217,14 +217,14 @@ function MinDeriv:pairCoverage ()
 				local exp
 				local pairCov = { [v1] = graph[v1][v2].exp }
 				if vInit == v1 then
-					exp = graph['s'][v2].exp
+					exp = graph[vInit][v2].exp
 					-- checks whether v2 was already generated
 					local has, _ = parser.hasSymbol(exp, v2)
 					if has then -- do not need to generate v2 again
 						pairCov = {}
 					end
 				else
-				 	exp = graph['s'][v1].exp
+					exp = graph[vInit][v1].exp
 				end
 				--print("derivPairCoverage (" .. v1 .. "," .. v2 .. "): " .. pretty.printp(exp))
 				local newW = self:getMinDeriv(exp, pairCov).w
@@ -263,7 +263,7 @@ function MinDeriv:buildGraph ()
 end
 
 
-function MinDeriv:generate ()
+function MinDeriv:generate (config)
 	local graph = self.graph
 	local grammar = self.grammar
 	local coverage = self.coverage
@@ -273,7 +273,17 @@ function MinDeriv:generate ()
 	for _, v1 in ipairs(grammar.plist) do
 		for _, v2 in ipairs(grammar.plist) do
 			if graph[v1][v2] then
-				print(v1 .. " -> " .. v2 .. ': ' .. coverage[v1][v2])
+				if config.file then
+					local ext = config.ext or 'txt'
+					local dir = config.dir or ''
+					local fileName = v1 .. "_" .. v2 .. '.' .. ext
+					local file = io.open(dir .. fileName, "w")
+					assert(file ~= nil, "Error opening file " .. dir .. fileName)
+					file:write(coverage[v1][v2])
+					file:close()
+				else
+					print(v1 .. " -> " .. v2 .. ': ' .. coverage[v1][v2])
+				end
 			end
 		end
 	end

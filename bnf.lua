@@ -44,6 +44,7 @@ function Bnf:rewriteGrammar ()
 	local grammar = self.grammar
 	self.bnfg = parser.initgrammar()
 	local bnfg = self.bnfg
+	bnfg.init = grammar.init
 	
 	for i, var in ipairs(grammar.plist) do
 		table.insert(bnfg.plist, var)

@@ -59,11 +59,25 @@ describe("Testing #minderiv", function()
 		assert.is_one_of(words.s, "a", "c")
 	end)
 	
-	
+	test("Empty string", function()
+		local g = [[x <- '']]
+		g = parser.match(g)
+
+		local d = minderiv.new(g)
+		local minD = d:calcMinDeriv()
+
+		assert.same(getSubtable(minD, "n"), { x = 1 })
+		local words = getSubtable(minD, "w")
+
+		--as the alternatives are tried in order, we actually know what is the minimum derivation
+		assert.is_one_of(words.x, "")
+	end)
+
+
 	test("Calculate minimum derivation 1", function()
 		local g = [[s <- 'a' b / b c
 		            b <- c
-		            c <- 'c']]
+		            c <- 'c' / '']]
 		g = parser.match(g)
 		
 		local d = minderiv.new(g)
