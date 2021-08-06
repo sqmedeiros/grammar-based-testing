@@ -66,6 +66,16 @@ describe("Testing #set", function()
 		assert.same(s1:sort(), {})
 	end)
 	
+	test("Testing getEle", function()
+		local t = { "a", "b", "c" }
+		local s1 = set.new(t)
+
+		assert.True(s1:getEle("a"))
+		assert.True(s1:getEle("b"))
+		assert.True(s1:getEle("c"))
+		assert.Nil(s1:getEle("d"))
+	end)
+
 	test("Testing union/equal", function()
 		local t = { 10, 20, 30 }
 		local s1 = set.new(t)
