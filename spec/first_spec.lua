@@ -480,6 +480,30 @@ describe("Testing #last", function()
 	end)
 
 
+	test("LAST set of concatenation 3", function()
+		local g = parser.match[[
+			s   <- x
+			x   <- '' y
+			y   <- z
+			z   <- w
+			w   <- 'w'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+
+		local setLst = {}
+		setLst['s'] = set.new{ 'w' }
+		setLst['x'] = set.new{ 'w' }
+		setLst['y'] = set.new{ 'w' }
+		setLst['z'] = set.new{ 'w' }
+		setLst['w'] = set.new{ 'w' }
+
+		assert.same(objFst.LAST, setLst)
+	end)
+
+
 	test("LAST set of repetition", function()
 		local g = parser.match[[
 			s   <- 'b' 'a'*

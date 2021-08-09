@@ -51,7 +51,7 @@ function First:calcFirstG ()
 				exp = parser.newNode('var', var)
 			end
 			local newFirst = self:calcFirstExp(exp)
-			if not newFirst:subset(FIRST[var]) then
+			if not newFirst:equal(FIRST[var]) then
         update = true
 	      FIRST[var] = FIRST[var]:union(newFirst)
 			end
@@ -206,7 +206,7 @@ function First:calcLastG ()
 			end
 			local newLast = self:calcLastExp(exp)
 
-			if not newLast:subset(LAST[var]) then
+			if not newLast:equal(LAST[var]) then
         update = true
 	      LAST[var] = LAST[var]:union(newLast)
 			end
