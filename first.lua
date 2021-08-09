@@ -3,7 +3,8 @@ local parser = require"parser"
 
 local First = { prefixLex = "___",
 								empty     = "__empty",
-								any       = "__any" }
+								any       = "__any" ,
+								endInput  = "__$"   }
 First.__index = First
 
 function First.new (grammar)
@@ -113,6 +114,84 @@ function First:calcFstExp (exp)
 		error("Unknown tag: " .. exp.tag)
 	end
 end
+
+
+function First:calcFlwG ()
+	local update = true
+	local grammar = self.grammar
+	local FOLLOW = self.FOLLOW
+
+	FOLLOW[self.grammar.init] = set.new{ self.endInput }
+
+	while update do
+    update = false
+
+    local oldFOLLOW = {}
+    for k, v in pairs(FOLLOW) do
+			oldFOLLOW[k] = v
+    end
+
+    for i, var in ipairs(grammar.plist) do
+			local exp = grammar.prules[var]
+			if parser.isLexRule(var) then
+				exp = parser.newNode('var', var)
+			end
+			self:calcFlwExp(exp, FOLLOW[var])
+		end
+
+		for i, var in ipairs(grammar.plist) do
+			if not FOLLOW[var]:equal(oldFOLLOW[var]) then
+        update = true
+				break
+			end
+    end
+	end
+
+	return FOLLOW
+end
+
+
+function First:firstWithoutEmpty (set1, set2)
+	assert(not set2:getEle(self.empty), set2:tostring() .. ' || ' .. set1:tostring())
+	if set1:getEle(self.empty) then
+		set1:remove(self.empty)
+		return set1:union(set2)
+	else
+		return set1
+	end
+end
+
+
+function First:calcFlwExp (exp, flw)
+	if exp.tag == 'empty' or exp.tag == 'char' or exp.tag == 'any' then
+		return
+	elseif exp.tag == 'var' then
+    self.FOLLOW[exp.p1] = self.FOLLOW[exp.p1]:union(flw)
+  elseif exp.tag == 'con' then
+		local n = #exp.p1
+		for i = n, 1, -1 do
+			local iExp = exp.p1[i]
+			self:calcFlwExp(iExp, flw)
+			local firstIExp = self:calcFstExp(iExp)
+			flw = self:firstWithoutEmpty(firstIExp, flw)
+		end
+  elseif exp.tag == 'ord' then
+		for i, v in ipairs(exp.p1) do
+			self:calcFlwExp(v, flw)
+		end
+  elseif exp.tag == 'star' or exp.tag == 'plus' then
+		local firstInnerExp = self:calcFstExp(exp.p1)
+		firstInnerExp:remove(self.empty)
+		self:calcFlwExp(exp.p1, firstInnerExp:union(flw))
+  elseif exp.tag == 'opt' then
+    self:calcFlwExp(exp.p1, flw)
+  else
+		print(exp, exp.tag, exp.empty, exp.any)
+		error("Unknown tag: " .. exp.tag)
+	end
+end
+
+
 
 
 function First:tostring(setName, var)

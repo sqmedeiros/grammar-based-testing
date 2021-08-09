@@ -4,6 +4,7 @@ local first = require'first'
 
 local empty = first.empty
 local any = first.any
+local endInput = first.endInput
 
 describe("Testing #first", function()
 	
@@ -142,4 +143,235 @@ describe("Testing #first", function()
 	end)	
 end)
 
+
+describe("Testing #follow", function()
+
+	test("FOLLOW set of start rule", function()
+		local g = parser.match[[
+			s   <- 'a'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFstG()
+		objFst:calcFlwG()
+
+		local setFlw = {}
+		setFlw['s'] = set.new{ endInput }
+
+		assert.same(objFst.FOLLOW, setFlw)
+	end)
+
+	test("Grammar with concatenation 1", function()
+		local g = parser.match[[
+			s   <- A 'a' A B
+			A   <- 'x'
+			B   <- 'B' / A
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFstG()
+		objFst:calcFlwG()
+
+		local setFlw = {}
+		setFlw['s'] = set.new{ endInput }
+		setFlw['A'] = set.new{ 'a', objFst:lexKey('B') }
+		setFlw['B'] = set.new{ endInput }
+
+		assert.same(objFst.FOLLOW, setFlw)
+	end)
+
+
+	test("Grammar with choice", function()
+		local g = parser.match[[
+			s   <- a 'a' a b
+			a   <- 'x'
+			b   <- 'B' / a b a
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFstG()
+		objFst:calcFlwG()
+
+		local setFlw = {}
+		setFlw['s'] = set.new{ endInput }
+		setFlw['a'] = set.new{ 'a', 'B', 'x', endInput }
+		setFlw['b'] = set.new{ endInput, 'x' }
+
+		assert.same(objFst.FOLLOW, setFlw)
+	end)
+
+
+	test("Grammar with empty string", function()
+		local g = parser.match[[
+			s   <- a b c
+			a   <- 'a'
+			b   <- 'b'
+			c   <- 'c' / ''
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFstG()
+		objFst:calcFlwG()
+
+		local setFlw = {}
+		setFlw['s'] = set.new{ endInput }
+		setFlw['a'] = set.new{ 'b' }
+		setFlw['b'] = set.new{ 'c', endInput }
+		setFlw['c'] = set.new{ endInput }
+
+		assert.same(objFst.FOLLOW, setFlw)
+	end)
+
+
+	test("Grammar with empty string 2", function()
+		local g = parser.match[[
+			s   <- a b c d
+			a   <- 'a'
+			b   <- 'b'
+			c   <- 'c' / ''
+			d   <- 'd' / ''
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFstG()
+		objFst:calcFlwG()
+
+		local setFlw = {}
+		setFlw['s'] = set.new{ endInput }
+		setFlw['a'] = set.new{ 'b' }
+		setFlw['b'] = set.new{ 'c', 'd', endInput }
+		setFlw['c'] = set.new{ 'd', endInput }
+		setFlw['d'] = set.new{ endInput }
+
+		assert.same(objFst.FOLLOW, setFlw)
+	end)
+
+
+	test("Grammar repetition: star", function()
+		local g = parser.match[[
+			s   <- a* 'A' b* c*
+			a   <- 'x' / 'y'
+			b   <- 'b'
+			c   <- 'c'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFstG()
+		objFst:calcFlwG()
+
+		local setFlw = {}
+		setFlw['s'] = set.new{ endInput }
+		setFlw['a'] = set.new{ 'x', 'y', 'A' }
+		setFlw['b'] = set.new{ endInput, 'b', 'c' }
+		setFlw['c'] = set.new{ endInput, 'c' }
+
+		assert.same(objFst.FOLLOW, setFlw)
+	end)
+
+	test("Grammar repetition: plus", function()
+		local g = parser.match[[
+			s   <- a+ 'A' b+ c+
+			a   <- 'x' / 'y'
+			b   <- 'b'
+			c   <- 'c'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFstG()
+		objFst:calcFlwG()
+
+		local setFlw = {}
+		setFlw['s'] = set.new{ endInput }
+		setFlw['a'] = set.new{ 'x', 'y', 'A' }
+		setFlw['b'] = set.new{ 'b', 'c' }
+		setFlw['c'] = set.new{ endInput, 'c' }
+
+		assert.same(objFst.FOLLOW, setFlw)
+	end)
+
+
+	test("Grammar repetition: question/optional", function()
+		local g = parser.match[[
+			s   <- a? 'A' b? c?
+			a   <- 'x' / 'y'
+			b   <- 'b'
+			c   <- 'c'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFstG()
+		objFst:calcFlwG()
+
+		local setFlw = {}
+		setFlw['s'] = set.new{ endInput }
+		setFlw['a'] = set.new{ 'A' }
+		setFlw['b'] = set.new{ 'c', endInput}
+		setFlw['c'] = set.new{ endInput }
+
+		assert.same(objFst.FOLLOW, setFlw)
+	end)
+
+
+	test("Grammar repetition", function()
+		local g = parser.match[[
+			s   <- a* 'A'
+			a   <- b / 'o' c 'd'
+			b   <- 'B'? 'x' c+ 'u'
+			c   <- 'y' a 'z'?
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFstG()
+		objFst:calcFlwG()
+
+		local setFlw = {}
+		setFlw['s'] = set.new{ endInput }
+		setFlw['a'] = set.new{ 'B', 'x', 'o', 'A', 'z', 'd', 'u', 'y' }
+		setFlw['b'] = set.new{ 'B', 'x', 'o', 'A', 'z', 'd', 'u', 'y' }
+		setFlw['c'] = set.new{ 'y', 'u', 'd' }
+
+		assert.same(objFst.FOLLOW, setFlw)
+	end)
+
+	test("Calculating FOLLOW of a DOT grammar", function()
+		local g = parser.match[[
+			graph             <-   'strict'? ('graph'   /  'digraph') id? '{' stmt_list '}'
+			stmt_list         <-   (stmt ';'? )*
+			stmt              <-   id '=' id   /  edge_stmt   /  node_stmt  /  attr_stmt   /   subgraph
+			attr_stmt         <-   ('graph'   /  'node'   /  'edge' ) attr_list
+			attr_list         <-   ('[' a_list? ']' )+
+			a_list            <-   (id ('=' id )? ','? )+
+			edge_stmt         <-   (node_id   /  subgraph ) edgeRHS attr_list?
+			edgeRHS           <-   (edgeop (node_id   /  subgraph ) )+
+			edgeop            <-   '->'   /  '--'
+			node_stmt         <-   node_id attr_list?
+			node_id           <-   id port?
+			port              <-   ':' id (':' id )?
+			subgraph          <-   ('subgraph' id? )? '{' stmt_list '}'
+			id                <-   'a'   /  '"a"'   /  '<a>'   /  '1'
+    ]]
+
+		local objFst = first.new(g)
+		objFst:calcFstG()
+		objFst:calcFlwG()
+
+		local setFlw = {}
+		setFlw['graph'] = set.new { endInput  }
+		setFlw['stmt_list'] = set.new { '}' }
+		setFlw['stmt'] = set.new      { 'a', '"a"', '<a>', '1', 'subgraph', '{', 'graph', 'node', 'edge', ';', '}' }
+		setFlw['attr_stmt'] = set.new { 'a', '"a"', '<a>', '1', 'subgraph', '{', 'graph', 'node', 'edge', ';', '}' }
+		setFlw['attr_list'] = set.new { 'a', '"a"', '<a>', '1', 'subgraph', '{', 'graph', 'node', 'edge', ';', '}' }
+		setFlw['a_list'] = set.new    { ']' }
+		setFlw['edge_stmt'] = set.new { 'a', '"a"', '<a>', '1', 'subgraph', '{', 'graph', 'node', 'edge', ';', '}' }
+		setFlw['edgeRHS'] = set.new   { 'a', '"a"', '<a>', '1', 'subgraph', '{', 'graph', 'node', 'edge', ';', '}', '[' }
+		setFlw['edgeop'] = set.new    { 'a', '"a"', '<a>', '1', 'subgraph', '{' }
+		setFlw['node_stmt'] = set.new { 'a', '"a"', '<a>', '1', 'subgraph', '{', 'graph', 'node', 'edge', ';', '}' }
+		setFlw['node_id'] = set.new   { 'a', '"a"', '<a>', '1', 'subgraph', '{', 'graph', 'node', 'edge', ';', '}', '[', '->', '--' }
+		setFlw['port'] = set.new      { 'a', '"a"', '<a>', '1', 'subgraph', '{', 'graph', 'node', 'edge', ';', '}', '[', '->', '--' }
+		setFlw['subgraph'] = set.new  { 'a', '"a"', '<a>', '1', 'subgraph', '{', 'graph', 'node', 'edge', ';', '}', '[', '->', '--', '{' }
+		setFlw['id'] = set.new        { 'a', '"a"', '<a>', '1', 'subgraph', '{', 'graph', 'node', 'edge', ';', '}', '=', ',', '->', '--', ':' , '[', ']'}
+
+		assert.same(objFst.FOLLOW, setFlw)
+	end)
+end)
 
