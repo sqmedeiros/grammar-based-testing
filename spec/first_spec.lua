@@ -15,7 +15,7 @@ describe("Testing #first", function()
 			XYZ <- 'w']]
 					
 		local objFst = first.new(g)
-		objFst:calcFstG()
+		objFst:calcFirstG()
 		
 		local setFirst = {}
 		for i, v in ipairs(g.plist) do
@@ -33,7 +33,7 @@ describe("Testing #first", function()
 			xyz <- .]]
 					
 		local objFst = first.new(g)
-		objFst:calcFstG()
+		objFst:calcFirstG()
 		
 		local setFirst = {}
 		setFirst['s'] = set.new { 'a' }
@@ -52,7 +52,7 @@ describe("Testing #first", function()
 			y   <- '']]
 					
 		local objFst = first.new(g)
-		objFst:calcFstG()
+		objFst:calcFirstG()
 		
 		local setFirst = {}
 		setFirst['s'] = set.new { 'a' }
@@ -73,7 +73,7 @@ describe("Testing #first", function()
 			y   <- '' / 'Y']]
 					
 		local objFst = first.new(g)
-		objFst:calcFstG()
+		objFst:calcFirstG()
 		
 		local setFirst = {}
 		setFirst['s'] = set.new { 'a', 'x' }
@@ -92,7 +92,7 @@ describe("Testing #first", function()
 			b   <- 'c' 'd' / 'e' / 'x'+]]
 					
 		local objFst = first.new(g)
-		objFst:calcFstG()
+		objFst:calcFirstG()
 		
 		local setFirst = {}
 		setFirst['s'] = set.new { 'a', 'b', empty }
@@ -121,7 +121,7 @@ describe("Testing #first", function()
     ]]
     
 		local objFst = first.new(g)
-		objFst:calcFstG()
+		objFst:calcFirstG()
 		
 		local setFirst = {}
 		setFirst['graph'] = set.new { 'strict', 'graph', 'digraph' }
@@ -152,8 +152,8 @@ describe("Testing #follow", function()
 		]]
 
 		local objFst = first.new(g)
-		objFst:calcFstG()
-		objFst:calcFlwG()
+		objFst:calcFirstG()
+		objFst:calcFollowG()
 
 		local setFlw = {}
 		setFlw['s'] = set.new{ endInput }
@@ -169,8 +169,8 @@ describe("Testing #follow", function()
 		]]
 
 		local objFst = first.new(g)
-		objFst:calcFstG()
-		objFst:calcFlwG()
+		objFst:calcFirstG()
+		objFst:calcFollowG()
 
 		local setFlw = {}
 		setFlw['s'] = set.new{ endInput }
@@ -189,8 +189,8 @@ describe("Testing #follow", function()
 		]]
 
 		local objFst = first.new(g)
-		objFst:calcFstG()
-		objFst:calcFlwG()
+		objFst:calcFirstG()
+		objFst:calcFollowG()
 
 		local setFlw = {}
 		setFlw['s'] = set.new{ endInput }
@@ -210,8 +210,8 @@ describe("Testing #follow", function()
 		]]
 
 		local objFst = first.new(g)
-		objFst:calcFstG()
-		objFst:calcFlwG()
+		objFst:calcFirstG()
+		objFst:calcFollowG()
 
 		local setFlw = {}
 		setFlw['s'] = set.new{ endInput }
@@ -233,8 +233,8 @@ describe("Testing #follow", function()
 		]]
 
 		local objFst = first.new(g)
-		objFst:calcFstG()
-		objFst:calcFlwG()
+		objFst:calcFirstG()
+		objFst:calcFollowG()
 
 		local setFlw = {}
 		setFlw['s'] = set.new{ endInput }
@@ -256,8 +256,8 @@ describe("Testing #follow", function()
 		]]
 
 		local objFst = first.new(g)
-		objFst:calcFstG()
-		objFst:calcFlwG()
+		objFst:calcFirstG()
+		objFst:calcFollowG()
 
 		local setFlw = {}
 		setFlw['s'] = set.new{ endInput }
@@ -277,8 +277,8 @@ describe("Testing #follow", function()
 		]]
 
 		local objFst = first.new(g)
-		objFst:calcFstG()
-		objFst:calcFlwG()
+		objFst:calcFirstG()
+		objFst:calcFollowG()
 
 		local setFlw = {}
 		setFlw['s'] = set.new{ endInput }
@@ -299,8 +299,8 @@ describe("Testing #follow", function()
 		]]
 
 		local objFst = first.new(g)
-		objFst:calcFstG()
-		objFst:calcFlwG()
+		objFst:calcFirstG()
+		objFst:calcFollowG()
 
 		local setFlw = {}
 		setFlw['s'] = set.new{ endInput }
@@ -321,8 +321,8 @@ describe("Testing #follow", function()
 		]]
 
 		local objFst = first.new(g)
-		objFst:calcFstG()
-		objFst:calcFlwG()
+		objFst:calcFirstG()
+		objFst:calcFollowG()
 
 		local setFlw = {}
 		setFlw['s'] = set.new{ endInput }
@@ -352,8 +352,8 @@ describe("Testing #follow", function()
     ]]
 
 		local objFst = first.new(g)
-		objFst:calcFstG()
-		objFst:calcFlwG()
+		objFst:calcFirstG()
+		objFst:calcFollowG()
 
 		local setFlw = {}
 		setFlw['graph'] = set.new { endInput  }
@@ -373,5 +373,192 @@ describe("Testing #follow", function()
 
 		assert.same(objFst.FOLLOW, setFlw)
 	end)
+end)
+
+
+describe("Testing #last", function()
+
+	test("LAST set of simple expresions", function()
+		local g = parser.match[[
+			s   <- 'a'
+			a   <- .
+			b   <- ''
+			C   <- 'c'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+
+		local setLst = {}
+		setLst['s'] = set.new{ 'a' }
+		setLst['a'] = set.new{ first.any }
+		setLst['b'] = set.new{ first.empty }
+		setLst['C'] = set.new{ objFst:lexKey('C') }
+
+		assert.same(objFst.LAST, setLst)
+	end)
+
+	test("LAST set of choice expresion", function()
+		local g = parser.match[[
+			s   <- a / b
+			a   <- b / c
+			b   <- 'b' / 'B'
+			c   <- '' / 'c'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+
+		local setLst = {}
+		setLst['s'] = set.new{ 'b', 'B', empty, 'c', }
+		setLst['a'] = set.new{ 'b', 'B', empty, 'c' }
+		setLst['b'] = set.new{ 'b', 'B' }
+		setLst['c'] = set.new{ empty, 'c' }
+
+		assert.same(objFst.LAST, setLst)
+	end)
+
+	test("LAST set of choice expresion", function()
+		local g = parser.match[[
+			id                <-   'a'   /  '"a"'   /  '<a>'   /  '1'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+
+		local setLst = {}
+		setLst['id'] = set.new{ 'a', '"a"', '<a>', '1' }
+
+		assert.same(objFst.LAST, setLst)
+	end)
+
+
+	test("LAST set of concatenation", function()
+		local g = parser.match[[
+			s   <- a c / b d
+			a   <- 'a' / 'A'
+			b   <- 'b' / 'B'
+			c   <- '' / 'c'
+			d   <- '' 'e' 'f' / 'e' ''
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+
+		local setLst = {}
+		setLst['s'] = set.new{ 'a',  'A', 'c', 'f', 'e' }
+		setLst['a'] = set.new{ 'a', 'A' }
+		setLst['b'] = set.new{ 'b', 'B' }
+		setLst['c'] = set.new{ empty, 'c' }
+		setLst['d'] = set.new{ 'f', 'e' }
+
+		assert.same(objFst.LAST, setLst)
+	end)
+
+
+	test("LAST set of concatenation 2", function()
+		local g = parser.match[[
+			x   <- y '' / z ''
+			y   <- 'a' / 'A' / z
+			z   <- 'b' / 'B'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+
+		local setLst = {}
+		setLst['x'] = set.new{ 'a',  'A', 'b', 'B' }
+		setLst['y'] = set.new{ 'a', 'A', 'b', 'B' }
+		setLst['z'] = set.new{ 'b', 'B' }
+
+		assert.same(objFst.LAST, setLst)
+	end)
+
+
+	test("LAST set of repetition", function()
+		local g = parser.match[[
+			s   <- 'b' 'a'*
+			a   <- 'B'+
+			b   <- ('c' / 'C')?
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+
+		local setLst = {}
+		setLst['s'] = set.new{ 'a', 'b' }
+		setLst['a'] = set.new{ 'B' }
+		setLst['b'] = set.new{ 'c', 'C', empty }
+
+		assert.same(objFst.LAST, setLst)
+	end)
+
+
+	test("Calculating LAST of id", function()
+		local g = parser.match[[
+			a_list            <-   ('=' id)?
+			id                <-   'a'   /  '"a"'   /  '<a>'   /  '1'
+    ]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+
+		local setLst = {}
+		setLst['a_list'] = set.new    { 'a', '"a"', '<a>', '1', empty }
+		setLst['id'] = set.new        { 'a', '"a"', '<a>', '1' }
+
+		assert.same(objFst.LAST, setLst)
+	end)
+
+
+	test("Calculating LAST of a DOT grammar", function()
+		local g = parser.match[[
+			graph             <-   'strict'? ('graph'   /  'digraph') id? '{' stmt_list '}'
+			stmt_list         <-   (stmt ';'? )*
+			stmt              <-   id '=' id   /  edge_stmt   /  node_stmt  /  attr_stmt   /   subgraph
+			attr_stmt         <-   ('graph'   /  'node'   /  'edge' ) attr_list
+			attr_list         <-   ('[' a_list? ']' )+
+			a_list            <-   (id ('=' id )? ','? )+
+			edge_stmt         <-   (node_id   /  subgraph ) edgeRHS attr_list?
+			edgeRHS           <-   (edgeop (node_id   /  subgraph ) )+
+			edgeop            <-   '->'   /  '--'
+			node_stmt         <-   node_id attr_list?
+			node_id           <-   id port?
+			port              <-   ':' id (':' id )?
+			subgraph          <-   ('subgraph' id? )? '{' stmt_list '}'
+			id                <-   'a'   /  '"a"'   /  '<a>'   /  '1'
+    ]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+
+
+		local setLst = {}
+		setLst['graph'] = set.new { '}'  }
+		setLst['stmt_list'] = set.new { empty, ';', 'a', '"a"', '<a>', '1', ']', '}' }
+		setLst['stmt'] = set.new      { 'a', '"a"', '<a>', '1', ']', '}' }
+		setLst['attr_stmt'] = set.new { ']' }
+		setLst['attr_list'] = set.new { ']' }
+		setLst['a_list'] = set.new    { 'a', '"a"', '<a>', '1', ',' }
+		setLst['edge_stmt'] = set.new { ']', 'a', '"a"', '<a>', '1', '}' }
+		setLst['edgeRHS'] = set.new   { 'a', '"a"', '<a>', '1', '}' }
+		setLst['edgeop'] = set.new    { '->', '--' }
+		setLst['node_stmt'] = set.new { 'a', '"a"', '<a>', '1', ']' }
+		setLst['node_id'] = set.new   { 'a', '"a"', '<a>', '1' }
+		setLst['port'] = set.new      { 'a', '"a"', '<a>', '1' }
+		setLst['subgraph'] = set.new  { '}' }
+		setLst['id'] = set.new        { 'a', '"a"', '<a>', '1' }
+
+		assert.same(objFst.LAST, setLst)
+	end)
+
 end)
 

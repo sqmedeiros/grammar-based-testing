@@ -38,7 +38,7 @@ function First:initSetFromGrammar (name)
 end
 
 
-function First:calcFstG ()	
+function First:calcFirstG ()
 	local update = true
 	local grammar = self.grammar
 	local FIRST = self.FIRST
@@ -50,8 +50,8 @@ function First:calcFstG ()
 			if parser.isLexRule(var) then
 				exp = parser.newNode('var', var)
 			end
-			local newFirst = self:calcFstExp(exp)
-			if FIRST[var]:equal(newFirst) == false then
+			local newFirst = self:calcFirstExp(exp)
+			if not newFirst:subset(FIRST[var]) then
         update = true
 	      FIRST[var] = FIRST[var]:union(newFirst)
 			end
@@ -62,7 +62,7 @@ function First:calcFstG ()
 end
 
 
-function First:calcFstExp (exp)
+function First:calcFirstExp (exp)
 	if exp.tag == 'empty' then
 		return set.new{ self.empty }
 	elseif exp.tag == 'char' then
@@ -75,16 +75,16 @@ function First:calcFstExp (exp)
 		local firstChoice = set.new()
 		
 		for i, v in ipairs(exp.p1) do
-			firstChoice = firstChoice:union(self:calcFstExp(v))
+			firstChoice = firstChoice:union(self:calcFirstExp(v))
 		end
 		
 		return firstChoice
 	elseif exp.tag == 'con' then
-		local firstSeq = self:calcFstExp(exp.p1[1])
+		local firstSeq = self:calcFirstExp(exp.p1[1])
 		local i = 2
 		
 		while firstSeq:getEle(self.empty) == true and i <= #exp.p1 do
-			local firstNext = self:calcFstExp(exp.p1[i])
+			local firstNext = self:calcFirstExp(exp.p1[i])
 			firstSeq = firstSeq:union(firstNext)
 			if not firstNext:getEle(self.empty) then
 				firstSeq:remove(self.empty)
@@ -97,7 +97,7 @@ function First:calcFstExp (exp)
 		if parser.isLexRule(exp.p1) then
 			return set.new{ self:lexKey(exp.p1) }
 		end
-		return self.FIRST[exp.p1]
+		return set.new(self.FIRST[exp.p1].tab, 'fromKey')
 	--elseif p.tag == 'throw' then
 	--	return { [empty] = true }
 	--elseif p.tag == 'and' then
@@ -106,9 +106,9 @@ function First:calcFstExp (exp)
 	--	return { [empty] = true }
   -- in a well-formed PEG, given p*, we know p does not match the empty string
 	elseif exp.tag == 'opt' or exp.tag == 'star' then 
-		return self:calcFstExp(exp.p1):union(set.new{self.empty})
+		return self:calcFirstExp(exp.p1):union(set.new{self.empty})
   elseif exp.tag == 'plus' then
-		return self:calcFstExp(exp.p1)
+		return self:calcFirstExp(exp.p1)
 	else
 		print(exp, exp.tag, exp.empty, exp.any)
 		error("Unknown tag: " .. exp.tag)
@@ -116,7 +116,7 @@ function First:calcFstExp (exp)
 end
 
 
-function First:calcFlwG ()
+function First:calcFollowG ()
 	local update = true
 	local grammar = self.grammar
 	local FOLLOW = self.FOLLOW
@@ -136,7 +136,7 @@ function First:calcFlwG ()
 			if parser.isLexRule(var) then
 				exp = parser.newNode('var', var)
 			end
-			self:calcFlwExp(exp, FOLLOW[var])
+			self:calcFollowExp(exp, FOLLOW[var])
 		end
 
 		for i, var in ipairs(grammar.plist) do
@@ -162,7 +162,7 @@ function First:firstWithoutEmpty (set1, set2)
 end
 
 
-function First:calcFlwExp (exp, flw)
+function First:calcFollowExp (exp, flw)
 	if exp.tag == 'empty' or exp.tag == 'char' or exp.tag == 'any' then
 		return
 	elseif exp.tag == 'var' then
@@ -171,26 +171,109 @@ function First:calcFlwExp (exp, flw)
 		local n = #exp.p1
 		for i = n, 1, -1 do
 			local iExp = exp.p1[i]
-			self:calcFlwExp(iExp, flw)
-			local firstIExp = self:calcFstExp(iExp)
+			self:calcFollowExp(iExp, flw)
+			local firstIExp = self:calcFirstExp(iExp)
 			flw = self:firstWithoutEmpty(firstIExp, flw)
 		end
   elseif exp.tag == 'ord' then
 		for i, v in ipairs(exp.p1) do
-			self:calcFlwExp(v, flw)
+			self:calcFollowExp(v, flw)
 		end
   elseif exp.tag == 'star' or exp.tag == 'plus' then
-		local firstInnerExp = self:calcFstExp(exp.p1)
+		local firstInnerExp = self:calcFirstExp(exp.p1)
 		firstInnerExp:remove(self.empty)
-		self:calcFlwExp(exp.p1, firstInnerExp:union(flw))
+		self:calcFollowExp(exp.p1, firstInnerExp:union(flw))
   elseif exp.tag == 'opt' then
-    self:calcFlwExp(exp.p1, flw)
+    self:calcFollowExp(exp.p1, flw)
   else
 		print(exp, exp.tag, exp.empty, exp.any)
 		error("Unknown tag: " .. exp.tag)
 	end
 end
 
+
+function First:calcLastG ()
+	local update = true
+	local grammar = self.grammar
+	local LAST = self.LAST
+
+	while update do
+    update = false
+    for i, var in ipairs(grammar.plist) do
+			local exp = grammar.prules[var]
+			if parser.isLexRule(var) then
+				exp = parser.newNode('var', var)
+			end
+			local newLast = self:calcLastExp(exp)
+
+			if not newLast:subset(LAST[var]) then
+        update = true
+	      LAST[var] = LAST[var]:union(newLast)
+			end
+    end
+	end
+
+	return LAST
+end
+
+
+function First:calcLastExp (exp)
+	if exp.tag == 'empty' then
+		return set.new{ self.empty }
+	elseif exp.tag == 'char' then
+    return set.new{ exp.p1 }
+	elseif exp.tag == 'any' then
+		return set.new{ self.any }
+	--elseif p.tag == 'set' then
+	--	return unfoldset(p.p1)
+	elseif exp.tag == 'ord' then
+		local lastChoice = set.new()
+		local n = #exp.p1
+
+		for i = n, 1, -1 do
+			local iExp = exp.p1[i]
+			lastChoice = lastChoice:union(self:calcLastExp(iExp))
+		end
+
+		return lastChoice
+	elseif exp.tag == 'con' then
+		local n = #exp.p1
+		local lastSeq = self:calcLastExp(exp.p1[n])
+		local i = n - 1
+
+		while i >= 1 and lastSeq:getEle(self.empty) == true do
+			local lastExp = self:calcLastExp(exp.p1[i])
+			lastSeq = lastSeq:union(lastExp)
+			if not lastExp:getEle(self.empty) then
+				lastSeq:remove(self.empty)
+			end
+			i = i - 1
+		end
+
+		return lastSeq
+	elseif exp.tag == 'var' then
+		if parser.isLexRule(exp.p1) then
+			return set.new{ self:lexKey(exp.p1) }
+		end
+		return set.new(self.LAST[exp.p1].tab, 'fromKey')
+	--elseif p.tag == 'throw' then
+	--	return { [empty] = true }
+	--elseif p.tag == 'and' then
+	--	return { [empty] = true }
+	--elseif p.tag == 'not' then
+	--	return { [empty] = true }
+  -- in a well-formed PEG, given p*, we know p does not match the empty string
+  elseif exp.tag == 'star' or exp.tag == 'opt' then
+		local setEmpty = set.new{ self.empty }
+		local repExp = self:calcLastExp(exp.p1)
+		return setEmpty:union(repExp)
+  elseif exp.tag == 'plus' then
+		return self:calcLastExp(exp.p1)
+	else
+		print(exp, exp.tag, exp.empty, exp.any)
+		error("Unknown tag: " .. exp.tag)
+	end
+end
 
 
 
