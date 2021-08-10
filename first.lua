@@ -1,10 +1,11 @@
 local set = require"set"
 local parser = require"parser"
 
-local First = { prefixLex = "___",
-								empty     = "__empty",
-								any       = "__any" ,
-								endInput  = "__$"   }
+local First = { prefixLex  = "___",
+								empty      = "__empty",
+								any        = "__any" ,
+								endInput   = "__$",
+								beginInput = "__@" }
 First.__index = First
 
 function First.new (grammar)
@@ -25,7 +26,7 @@ end
 
 
 function First:lexKey (var)
-	assert(parser.isLexRule(var))
+	assert(parser.isLexRule(var), tostring(var))
 	return self.prefixLex .. var
 end
 
@@ -275,6 +276,70 @@ function First:calcLastExp (exp)
 	end
 end
 
+
+function First:calcPrecedeG ()
+	local update = true
+	local grammar = self.grammar
+	local PRECEDE = self.PRECEDE
+
+	PRECEDE[self.grammar.init] = set.new{ self.beginInput }
+
+	while update do
+    update = false
+
+    local oldPRECEDE = {}
+    for k, v in pairs(PRECEDE) do
+			oldPRECEDE[k] = v
+    end
+
+    for i, var in ipairs(grammar.plist) do
+			local exp = grammar.prules[var]
+			if parser.isLexRule(var) then
+				exp = parser.newNode('var', var)
+			end
+			self:calcPrecedeExp(exp, PRECEDE[var])
+		end
+
+		for i, var in ipairs(grammar.plist) do
+			if not PRECEDE[var]:equal(oldPRECEDE[var]) then
+        update = true
+				break
+			end
+    end
+	end
+
+	return PRECEDE
+end
+
+
+function First:calcPrecedeExp (exp, pre)
+	if exp.tag == 'empty' or exp.tag == 'char' or exp.tag == 'any' then
+		return
+	elseif exp.tag == 'var' then
+    self.PRECEDE[exp.p1] = self.PRECEDE[exp.p1]:union(pre)
+  elseif exp.tag == 'con' then
+		local n = #exp.p1
+		for i = 1, n do
+			local iExp = exp.p1[i]
+			self:calcPrecedeExp(iExp, pre)
+			local lastIExp = self:calcLastExp(iExp)
+			pre = self:firstWithoutEmpty(lastIExp, pre)
+		end
+  elseif exp.tag == 'ord' then
+		for i, v in ipairs(exp.p1) do
+			self:calcPrecedeExp(v, pre)
+		end
+  elseif exp.tag == 'star' or exp.tag == 'plus' then
+		local lastInnerExp = self:calcLastExp(exp.p1)
+		lastInnerExp:remove(self.empty)
+		self:calcPrecedeExp(exp.p1, lastInnerExp:union(pre))
+  elseif exp.tag == 'opt' then
+    self:calcPrecedeExp(exp.p1, pre)
+  else
+		print(exp, exp.tag, exp.empty, exp.any)
+		error("Unknown tag: " .. exp.tag)
+	end
+end
 
 
 function First:tostring(setName, var)

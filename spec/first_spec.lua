@@ -5,6 +5,7 @@ local first = require'first'
 local empty = first.empty
 local any = first.any
 local endInput = first.endInput
+local beginInput = first.beginInput
 
 describe("Testing #first", function()
 	
@@ -582,6 +583,144 @@ describe("Testing #last", function()
 		setLst['id'] = set.new        { 'a', '"a"', '<a>', '1' }
 
 		assert.same(objFst.LAST, setLst)
+	end)
+end)
+
+describe("Testing #precede", function()
+
+	test("PRECEDE set of the start non-terminal", function()
+		local g = parser.match[[
+			s   <- 'a'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+		objFst:calcPrecedeG()
+
+		local setPre = {}
+		setPre['s'] = set.new{ beginInput }
+
+		assert.same(objFst.PRECEDE, setPre)
+	end)
+
+
+	test("PRECEDE set of concatenation", function()
+		local g = parser.match[[
+			s   <- '' a c
+			a   <- 'a' b
+			b   <- ''
+			c   <- b d e
+			d   <- 'd'
+			e   <- 'e'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+		objFst:calcPrecedeG()
+
+		local setPre = {}
+		setPre['s'] = set.new{ beginInput }
+		setPre['a'] = set.new{ beginInput }
+		setPre['b'] = set.new{ 'a' }
+		setPre['c'] = set.new{ 'a' }
+		setPre['d'] = set.new{ 'a' }
+		setPre['e'] = set.new{ 'd' }
+
+		assert.same(objFst.PRECEDE, setPre)
+	end)
+
+	test("PRECEDE set of choice and concatenation", function()
+		local g = parser.match[[
+			s   <- a / b / c b d
+			a   <- A 'c'
+			b   <- 'b' b / '' / B
+			A   <- 'A'
+			B   <- 'B'
+			c   <- 'c' c / ''
+			d   <- 'd'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+		objFst:calcPrecedeG()
+
+		local setPre = {}
+		setPre['s'] = set.new{ beginInput }
+		setPre['a'] = set.new{ beginInput }
+		setPre['b'] = set.new{ beginInput, 'c', 'b' }
+		setPre['A'] = set.new{ beginInput }
+		setPre['B'] = set.new{ beginInput, 'c', 'b' }
+		setPre['c'] = set.new{ beginInput, 'c' }
+		setPre['d'] = set.new{ beginInput, 'c', 'b', objFst:lexKey'B' }
+
+		assert.same(objFst.PRECEDE, setPre)
+	end)
+
+	test("PRECEDE set of repetitions", function()
+		local g = parser.match[[
+			s   <- a+ b* c
+			a   <- 'a' 'A'? c
+			b   <- 'b'
+			c   <- 'c'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+		objFst:calcPrecedeG()
+
+		local setPre = {}
+		setPre['s'] = set.new{ beginInput }
+		setPre['a'] = set.new{ beginInput, 'c' }
+		setPre['b'] = set.new{ 'c', 'b' }
+		setPre['c'] = set.new{ 'c', 'b', 'a', 'A' }
+
+		assert.same(objFst.PRECEDE, setPre)
+	end)
+
+	test("Calculating PRECEDE of a DOT grammar", function()
+		local g = parser.match[[
+			graph             <-   'strict'? ('graph'   /  'digraph') id? '{' stmt_list '}'
+			stmt_list         <-   (stmt ';'? )*
+			stmt              <-   id '=' id   /  edge_stmt   /  node_stmt  /  attr_stmt  /  subgraph
+			attr_stmt         <-   ('graph'   /  'node'   /  'edge' ) attr_list
+			attr_list         <-   ('[' a_list? ']' )+
+			a_list            <-   (id ('=' id )? ','? )+
+			edge_stmt         <-   (node_id   /  subgraph ) edgeRHS attr_list?
+			edgeRHS           <-   (edgeop (node_id   /  subgraph ) )+
+			edgeop            <-   '->'   /  '--'
+			node_stmt         <-   node_id attr_list?
+			node_id           <-   id port?
+			port              <-   ':' id (':' id )?
+			subgraph          <-   ('subgraph' id? )? '{' stmt_list '}'
+			id                <-   'a'   /  '"a"'   /  '<a>'   /  '1'
+    ]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcLastG()
+		objFst:calcPrecedeG()
+
+		local setPre = {}
+		setPre['graph'] = set.new { beginInput }
+		setPre['stmt_list'] = set.new { '{' }
+		setPre['stmt'] = set.new      { '{', ';', 'a', '"a"', '<a>', '1', ']', '}' }
+		setPre['attr_stmt'] = set.new { '{', ';', 'a', '"a"', '<a>', '1', ']', '}' }
+		setPre['attr_list'] = set.new { 'graph', 'node', 'edge', 'a', '"a"', '<a>', '1', '}' }
+		setPre['a_list'] = set.new    { '[' }
+		setPre['edge_stmt'] = set.new { '{', ';', 'a', '"a"', '<a>', '1', ']', '}' }
+		setPre['edgeRHS'] = set.new   { 'a', '"a"', '<a>', '1', '}' }
+		setPre['edgeop'] = set.new    { 'a', '"a"', '<a>', '1', '}' }
+		setPre['node_stmt'] = set.new { '{', ';', 'a', '"a"', '<a>', '1', ']', '}' }
+		setPre['node_id'] = set.new   { '{', ';', 'a', '"a"', '<a>', '1', ']', '}', '->', '--' }
+		setPre['port'] = set.new      { 'a', '"a"', '<a>', '1' }
+		setPre['subgraph'] = set.new  { '{', ';', 'a', '"a"', '<a>', '1', ']', '}', '->', '--' }
+		setPre['id'] = set.new        { '{', ';', 'a', '"a"', '<a>', '1', ']', '}', '->', '--', ':', '=', ',', '[', 'subgraph', 'graph', 'digraph' }
+
+		assert.same(objFst.PRECEDE, setPre)
 	end)
 
 end)
