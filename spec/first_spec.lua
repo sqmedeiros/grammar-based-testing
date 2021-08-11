@@ -725,3 +725,93 @@ describe("Testing #precede", function()
 
 end)
 
+
+describe("Testing #left", function()
+
+	test("LEFT set of a BNF grammar 1", function()
+		local g = parser.match[[
+			s   <- a 'b' / 'c' 'd'
+			a   <- 'a' 'b'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcFollowG()
+		objFst:calcLastG()
+		objFst:calcPrecedeG()
+		objFst:calcLeftG()
+
+		local setLeft = {}
+		setLeft["s:__a"] = set.new{ beginInput }
+		setLeft["s:__a__'b'"] = set.new{ 'b' }
+		setLeft["s:__'c'"] = set.new{ beginInput }
+		setLeft["s:__'c'__'d'"] = set.new{ 'c' }
+		setLeft["a:__'a'"] = set.new{ beginInput }
+		setLeft["a:__'a'__'b'"] = set.new{ 'a' }
+
+		assert.same(objFst.LEFT, setLeft)
+
+	end)
+
+	test("LEFT set of a BNF grammar 2", function()
+		local g = parser.match[[
+			s   <- a '' b / a 'b' a 'y'
+			a   <- 'a' / ''
+			b   <- 'b'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcFollowG()
+		objFst:calcLastG()
+		objFst:calcPrecedeG()
+		objFst:calcLeftG()
+
+		local setLeft = {}
+		setLeft["s:__a"] = set.new{ beginInput }
+		setLeft["s:__a__''"] = set.new{ beginInput, 'a' }
+		setLeft["s:__a__''__b"] = set.new{ 'a', beginInput }
+		setLeft["s:__a__'b'"] = set.new{ 'a', beginInput }
+		setLeft["s:__a__'b'__a"] = set.new{ 'b' }
+		setLeft["s:__a__'b'__a__'y'"] = set.new{ 'a', 'b' }
+		setLeft["a:__'a'"] = set.new{ beginInput, 'b' }
+		setLeft["a:__''"] = set.new{ beginInput, 'b' }
+		setLeft["b:__'b'"] = set.new{ 'a', beginInput }
+		assert.same(objFst.LEFT, setLeft)
+	end)
+
+
+	test("LEFT set of a BNF grammar 3", function()
+		local g = parser.match[[
+			s   <- a '' b / a 'b' c 'y'
+			a   <- 'a' a / ''
+			b   <- 'b' a
+			c   <- 'c' / ''
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcFollowG()
+		objFst:calcLastG()
+		objFst:calcPrecedeG()
+		objFst:calcLeftG()
+
+		local setLeft = {}
+		setLeft["s:__a"] = set.new{ beginInput }
+		setLeft["s:__a__''"] = set.new{ 'a', beginInput }
+		setLeft["s:__a__''__b"] = set.new{ 'a', beginInput }
+		setLeft["s:__a__'b'"] = set.new{ 'a', beginInput }
+		setLeft["s:__a__'b'__c"] = set.new{ 'b' }
+		setLeft["s:__a__'b'__c__'y'"] = set.new{ 'c', 'b' }
+		setLeft["a:__'a'"] = set.new{ beginInput, 'b', 'a' }
+		setLeft["a:__'a'__a"] = set.new{ 'a' }
+		setLeft["a:__''"] = set.new{ beginInput, 'b', 'a' }
+		setLeft["b:__'b'"] = set.new{ 'a', beginInput }
+		setLeft["b:__'b'__a"] = set.new{ 'b' }
+		setLeft["c:__'c'"] = set.new{ 'b' }
+		setLeft["c:__''"] = set.new{ 'b' }
+		assert.same(objFst.LEFT, setLeft)
+	end)
+
+end)
+

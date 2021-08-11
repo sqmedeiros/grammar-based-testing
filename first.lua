@@ -1,11 +1,13 @@
 local set = require"set"
 local parser = require"parser"
+local pretty = require"pretty"
 
 local First = { prefixLex  = "___",
 								empty      = "__empty",
 								any        = "__any" ,
 								endInput   = "__$",
-								beginInput = "__@" }
+								beginInput = "__@",
+								prefixKey  = '__' }
 First.__index = First
 
 function First.new (grammar)
@@ -22,6 +24,7 @@ function First:setGrammar(grammar)
 	self:initSetFromGrammar("LAST")
 	self:initSetFromGrammar("FOLLOW")
 	self:initSetFromGrammar("PRECEDE")
+	self:initSetFromGrammar("LEFT")
 end
 
 
@@ -340,6 +343,59 @@ function First:calcPrecedeExp (exp, pre)
 		error("Unknown tag: " .. exp.tag)
 	end
 end
+
+
+
+
+function First:calcLeftG ()
+	local grammar = self.grammar
+	self.LEFT = {}
+	local LEFT = self.LEFT
+
+  for i, var in ipairs(grammar.plist) do
+		if not parser.isLexRule(var) then
+			exp = grammar.prules[var]
+			self:calcLeftExp(exp, self.PRECEDE[var], var .. ':')
+    end
+	end
+
+	return LEFT
+end
+
+
+function First:calcLeftExp (exp, last, key)
+	if exp.tag == 'empty' or exp.tag == 'any' then
+		key = key .. self.prefixKey .. pretty.printp(exp)
+    self.LEFT[key] = last
+	elseif exp.tag == 'var' or exp.tag == 'char' then
+		key = key .. self.prefixKey .. pretty.printp(exp)
+    self.LEFT[key] = last
+  elseif exp.tag == 'con' then
+		for _, iExp in ipairs(exp.p1) do
+			self:calcLeftExp(iExp, last, key)
+			key = key .. self.prefixKey .. pretty.printp(iExp)
+			local lastIExp = self:calcLastExp(iExp)
+			last = self:firstWithoutEmpty(lastIExp, last)
+		end
+  elseif exp.tag == 'ord' then
+		for _, iExp in ipairs(exp.p1) do
+			--key = key .. '/'
+			self:calcLeftExp(iExp, last, key)
+		end
+  --elseif exp.tag == 'star' or exp.tag == 'plus' then
+	--	local lastInnerExp = self:calcLastExp(exp.p1)
+	--	lastInnerExp:remove(self.empty)
+	--	self:calcPrecedeExp(exp.p1, lastInnerExp:union(pre))
+  --elseif exp.tag == 'opt' then
+  -- self:calcPrecedeExp(exp.p1, pre)
+  else
+		print(exp, exp.tag, exp.empty, exp.any)
+		error("Unknown tag: " .. exp.tag)
+	end
+end
+
+
+
 
 
 function First:tostring(setName, var)
