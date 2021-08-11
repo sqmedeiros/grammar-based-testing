@@ -273,7 +273,7 @@ function MinDeriv:generate (config)
 	for _, v1 in ipairs(grammar.plist) do
 		for _, v2 in ipairs(grammar.plist) do
 			if graph[v1][v2] then
-				if config.file then
+				if config and config.file then
 					local ext = config.ext or 'txt'
 					local dir = config.dir or ''
 					local fileName = v1 .. "_" .. v2 .. '.' .. ext
