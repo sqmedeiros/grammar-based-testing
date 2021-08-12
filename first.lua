@@ -25,6 +25,7 @@ function First:setGrammar(grammar)
 	self:initSetFromGrammar("FOLLOW")
 	self:initSetFromGrammar("PRECEDE")
 	self:initSetFromGrammar("LEFT")
+	self:initSetFromGrammar("RIGHT")
 end
 
 
@@ -381,6 +382,67 @@ function First:calcLeftExp (exp, last, key)
 		for _, iExp in ipairs(exp.p1) do
 			--key = key .. '/'
 			self:calcLeftExp(iExp, last, key)
+		end
+  --elseif exp.tag == 'star' or exp.tag == 'plus' then
+	--	local lastInnerExp = self:calcLastExp(exp.p1)
+	--	lastInnerExp:remove(self.empty)
+	--	self:calcPrecedeExp(exp.p1, lastInnerExp:union(pre))
+  --elseif exp.tag == 'opt' then
+  -- self:calcPrecedeExp(exp.p1, pre)
+  else
+		print(exp, exp.tag, exp.empty, exp.any)
+		error("Unknown tag: " .. exp.tag)
+	end
+end
+
+
+function First:calcRightG ()
+	local grammar = self.grammar
+	self.RIGHT = {}
+	local RIGHT = self.RIGHT
+
+  for i, var in ipairs(grammar.plist) do
+		if not parser.isLexRule(var) then
+			exp = grammar.prules[var]
+			self:calcRightExp(exp, self.FOLLOW[var], var .. ':')
+    end
+	end
+
+	return RIGHT
+end
+
+
+function First:calcFirstTail (exp, i, follow)
+	if i == #exp.p1 then
+		return follow
+	end
+	
+	local tailExp = parser.newSeq(table.unpack(exp.p1, i + 1))
+	
+	local firstTailExp = self:calcFirstExp(tailExp)
+	return self:firstWithoutEmpty(firstTailExp, follow)	
+end
+
+
+function First:calcRightExp (exp, follow, key)
+	if exp.tag == 'empty' or exp.tag == 'any' then
+		key = key .. self.prefixKey .. pretty.printp(exp)
+    self.RIGHT[key] = follow
+	elseif exp.tag == 'var' or exp.tag == 'char' then
+		key = key .. self.prefixKey .. pretty.printp(exp)
+    self.RIGHT[key] = follow
+  elseif exp.tag == 'con' then
+  	local n = #exp.p1
+  	for i = 1, n do
+			local iExp = exp.p1[i]
+			local firstTail = self:calcFirstTail(exp, i, follow)
+			self:calcRightExp(iExp, firstTail, key)
+			key = key .. self.prefixKey .. pretty.printp(iExp)
+		end
+  elseif exp.tag == 'ord' then
+		for _, iExp in ipairs(exp.p1) do
+			--key = key .. '/'
+			self:calcRightExp(iExp, follow, key)
 		end
   --elseif exp.tag == 'star' or exp.tag == 'plus' then
 	--	local lastInnerExp = self:calcLastExp(exp.p1)

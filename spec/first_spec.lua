@@ -815,3 +815,58 @@ describe("Testing #left", function()
 
 end)
 
+describe("Testing #right", function()
+
+	test("RIGHT set of a BNF grammar 1", function()
+		local g = parser.match[[
+			s   <- a 'b' / 'c' 'd'
+			a   <- 'a' 'b'
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcFollowG()
+		objFst:calcLastG()
+		objFst:calcPrecedeG()
+		objFst:calcRightG()
+
+		local setRight = {}
+		setRight["s:__a"] = set.new{ 'b' }
+		setRight["s:__a__'b'"] = set.new{ endInput }
+		setRight["s:__'c'"] = set.new{ 'd' }
+		setRight["s:__'c'__'d'"] = set.new{ endInput }
+		setRight["a:__'a'"] = set.new{ 'b' }
+		setRight["a:__'a'__'b'"] = set.new{ 'b' }
+
+		assert.same(objFst.RIGHT, setRight)
+
+	end)
+	
+	test("RIGHT set of a BNF grammar 2", function()
+		local g = parser.match[[
+			s   <- 'b' a / 'c' '' 'd'
+			a   <- 'a' a / ''
+		]]
+
+		local objFst = first.new(g)
+		objFst:calcFirstG()
+		objFst:calcFollowG()
+		objFst:calcLastG()
+		objFst:calcPrecedeG()
+		objFst:calcRightG()
+
+		local setRight = {}
+		setRight["s:__'b'"] = set.new{ 'a', endInput }
+		setRight["s:__'b'__a"] = set.new{ endInput }
+		setRight["s:__'c'"] = set.new{ 'd' }
+		setRight["s:__'c'__''"] = set.new{ 'd' }
+		setRight["s:__'c'__''__'d'"] = set.new{ endInput }
+		setRight["a:__'a'"] = set.new{ 'a', endInput }
+		setRight["a:__'a'__a"] = set.new{ endInput }
+		setRight["a:__''"] = set.new{ endInput }
+
+		assert.same(objFst.RIGHT, setRight)
+
+	end)
+end)
+
