@@ -163,7 +163,23 @@ describe("Testing #minderiv", function()
 		assert.same(words.I, "i j")
 	end)
 	
-	
+	test("Calculate minimum derivation in lexical rules", function()
+		local g = [[s <- 'a' A / 'b' B
+		            A <- 'x' A / 'x' 'y'
+		            B <- 'c' 'B' / 'c' 'd']]
+		g = parser.match(g)
+
+		local d = minderiv.new(g)
+		local minD = d:calcMinDeriv()
+
+		assert.same(getSubtable(minD, "n"), { B = 1, A = 1, s = 2 })
+		local words = getSubtable(minD, "w")
+
+		assert.same(words.s, "a x y")
+		assert.same(words.A, "x y")
+		assert.same(words.B, "c B")
+	end)
+
 	test("Calculate a minimum derivation where non-terminal A is rewritten in a specific way 1", function()
 		local g = [[s <- 'a' b / b c / 'e'
 		            b <- c b / D / E

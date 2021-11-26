@@ -11,7 +11,6 @@ function MinDeriv.new(grammar)
 	self.minDeriv = {}
 	self.graph = {}
 	self.coverage = {}
-	self.sep = ' '
 	--self.coverage = self:pairCoverage()	
 	return self
 end
@@ -79,7 +78,7 @@ function MinDeriv:getMinDeriv (p, pairCov)
 			if i == 1 then
 				w = t.w
 			else
-				w = w .. self.sep .. t.w
+				w = w .. ' ' .. t.w
 			end
 		end
 		return { n = n, w = w }
